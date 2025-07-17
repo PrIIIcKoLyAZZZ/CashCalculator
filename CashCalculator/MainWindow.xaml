@@ -76,6 +76,16 @@
                 CellEditEnding="DenomsGrid_CellEditEnding"
                 PreviewTextInput="DataGrid_PreviewTextInput">
         <DataGrid.Columns>
+          <DataGridTemplateColumn Header=" " Width="Auto">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding StatusGlyph}"
+                           Foreground="{Binding StatusBrush}"
+                           FontSize="16"
+                           HorizontalAlignment="Center"/>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
           <DataGridTextColumn Header="Номинал, ₽"
                               Binding="{Binding Value}"
                               Width="*"
@@ -106,6 +116,16 @@
                 CellEditEnding="SummaryGrid_CellEditEnding"
                 PreviewTextInput="DataGrid_PreviewTextInput">
         <DataGrid.Columns>
+          <DataGridTemplateColumn Header=" " Width="Auto">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding StatusGlyph}"
+                           Foreground="{Binding StatusBrush}"
+                           FontSize="16"
+                           HorizontalAlignment="Center"/>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
           <DataGridTextColumn Header="Итого, ₽"
                               Binding="{Binding Description}"
                               Width="0.8*"
@@ -130,7 +150,7 @@
       <Button 
         Style="{StaticResource FlatButton}"
         Content="📋"
-        ToolTip="Copy"
+        ToolTip="Copy to Clipboard"
         Width="30" Height="30"
         Click="CopyReport_Click"/>
     </Border>

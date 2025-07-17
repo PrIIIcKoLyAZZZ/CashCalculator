@@ -32,7 +32,7 @@ namespace CashCalculator
             SummaryItems = new ObservableCollection<SummaryItem>
             {
                 new SummaryItem("Сумма",               "0 ₽", SummaryStatus.None),
-                new SummaryItem("В кассе должно быть","",    SummaryStatus.None),
+                new SummaryItem("Должно получиться","",    SummaryStatus.None),
                 new SummaryItem("Расхождение",         "—",   SummaryStatus.None),
             };
             SummaryGrid.ItemsSource = SummaryItems;
