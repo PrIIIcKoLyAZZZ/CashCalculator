@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <UseWPF>true</UseWPF>
+
+        <!-- Задаём целевой рантайм и режим публикации -->
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+        <!-- Не обрезаем (trim) WPF-ресурсы -->
+        <PublishTrimmed>false</PublishTrimmed>
+
+        <!-- Иконка exe -->
+        <ApplicationIcon>icon.ico</ApplicationIcon>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Вшиваем иконку как ресурс WPF -->
+        <Resource Include="icon.ico" />
+    </ItemGroup>
+</Project>
