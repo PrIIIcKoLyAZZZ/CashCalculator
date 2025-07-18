@@ -27,7 +27,7 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # 3) Restore your main project
+      # 3) Restore only the main project
       - name: Restore CashCalculator
         run: dotnet restore CashCalculator/CashCalculator.csproj
 
@@ -37,14 +37,7 @@ jobs:
 
       # 5) Publish as a single-file self-contained EXE
       - name: Publish single-file EXE
-        run: |
-          dotnet publish CashCalculator/CashCalculator.csproj \
-            --configuration Release \
-            --runtime win-x64 \
-            --self-contained true \
-            /p:PublishSingleFile=true \
-            /p:EnableCompressionInSingleFile=true \
-            --output publish
+        run: dotnet publish CashCalculator/CashCalculator.csproj --configuration Release --runtime win-x64 --self-contained true /p:PublishSingleFile=true /p:EnableCompressionInSingleFile=true --output publish
 
       # 6) Upload the publish folder as an artifact
       - name: Upload artifact
