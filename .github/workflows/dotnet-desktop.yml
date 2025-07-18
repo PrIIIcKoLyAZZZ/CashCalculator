@@ -9,29 +9,19 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      # Только основной проект
       - name: Restore CashCalculator
         run: dotnet restore CashCalculator/CashCalculator.csproj
 
       - name: Build CashCalculator
-        run: dotnet build CashCalculator/CashCalculator.csproj \
-          --configuration Release --no-restore
-
-      # Тестов нет — этот шаг убран
-      # - name: Run tests
-      #   run: dotnet test ...
+        run: dotnet build CashCalculator/CashCalculator.csproj --configuration Release --no-restore
 
       - name: Publish single-file EXE
         run: |
