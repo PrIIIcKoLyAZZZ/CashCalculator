@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;                        // для FirstOrDefault()
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,7 +14,7 @@ namespace CashCalculator
 {
     public partial class MainWindow : Window
     {
-        private readonly CashRegister _register = new CashRegister();
+        private readonly CashRegister _register = new();
 
         public ObservableCollection<Denomination> Denominations { get; }
         public ObservableCollection<SummaryItem> SummaryItems { get; }
@@ -31,29 +30,30 @@ namespace CashCalculator
             // 2) Итоги
             SummaryItems = new ObservableCollection<SummaryItem>
             {
-                new SummaryItem("Сумма",              "0 ₽", SummaryStatus.None),
-                new SummaryItem("Должно получиться",  "",   SummaryStatus.None),
-                new SummaryItem("Расхождение",        "—",  SummaryStatus.None),
+                new("Сумма",              "0 ₽", SummaryStatus.None),
+                new("Должно получиться",  "",   SummaryStatus.None),
+                new("Расхождение",        "—",  SummaryStatus.None),
             };
 
-            // 3) Готовим фильтры
+            // 3) Фильтры
             DenominationFilters = new ObservableCollection<DenominationFilter>(
-                Denominations.Select(d => {
-                  var f = new DenominationFilter(d.Value, true);
-                  f.PropertyChanged += (_,__)=>
-                      ((CollectionViewSource)FindResource("DenomsViewSource")).View.Refresh();
-                  return f;
+                Denominations.Select(d =>
+                {
+                    var f = new DenominationFilter(d.Value, true);
+                    f.PropertyChanged += (_, __) =>
+                        ((CollectionViewSource)FindResource("DenomsViewSource")).View.Refresh();
+                    return f;
                 })
             );
 
-            // 4) Устанавливаем DataContext и источники
+            // 4) DataContext и источники
             DataContext = this;
-            ((CollectionViewSource)FindResource("DenomsViewSource")).Source = Denominations;
+            var cvs = (CollectionViewSource)FindResource("DenomsViewSource");
+            cvs.Source = Denominations;
+            DenomsGrid.ItemsSource  = cvs.View;
+            SummaryGrid.ItemsSource = SummaryItems;
 
-            DenomsGrid.ItemsSource   = ((CollectionViewSource)FindResource("DenomsViewSource")).View;
-            SummaryGrid.ItemsSource  = SummaryItems;
-
-            // 5) Скругление углов
+            // 5) Скруглённые углы
             DenomBorder.SizeChanged   += ClipBorder(DenomBorder);
             SummaryBorder.SizeChanged += ClipBorder(SummaryBorder);
 
@@ -70,37 +70,37 @@ namespace CashCalculator
             }
         }
 
-        private SizeChangedEventHandler ClipBorder(Border b) => (s,e)=>
+        private SizeChangedEventHandler ClipBorder(Border b) => (s, e) =>
         {
             b.Clip = new RectangleGeometry(
-              new Rect(0,0,b.ActualWidth,b.ActualHeight),
-              b.CornerRadius.TopLeft, b.CornerRadius.TopLeft);
+                new Rect(0, 0, b.ActualWidth, b.ActualHeight),
+                b.CornerRadius.TopLeft,
+                b.CornerRadius.TopLeft);
         };
 
-        // Только цифры
-        private static readonly Regex _digitsOnly = new Regex("[^0-9]+");
-        private void DataGrid_PreviewTextInput(object s, TextCompositionEventArgs e)
-            => e.Handled = _digitsOnly.IsMatch(e.Text);
+        // Ввод только цифр
+        private static readonly Regex _digitsOnly = new("[^0-9]+");
+        private void DataGrid_PreviewTextInput(object s, TextCompositionEventArgs e) =>
+            e.Handled = _digitsOnly.IsMatch(e.Text);
 
-        private void DenomsGrid_CellEditEnding(object s, DataGridCellEditEndingEventArgs e)
-            => Dispatcher.InvokeAsync(UpdateTotals);
+        private void DenomsGrid_CellEditEnding(object s, DataGridCellEditEndingEventArgs e) =>
+            Dispatcher.InvokeAsync(UpdateTotals);
 
-        private void SummaryGrid_CellEditEnding(object s, DataGridCellEditEndingEventArgs e)
-            => Dispatcher.InvokeAsync(UpdateTotals);
-
+        private void SummaryGrid_CellEditEnding(object s, DataGridCellEditEndingEventArgs e) =>
+            Dispatcher.InvokeAsync(UpdateTotals);
 
         private void UpdateTotals()
         {
-            // сумма
+            // 1) Сумма
             int sum = _register.TotalSum();
             SummaryItems[0].Value = $"{sum} ₽";
 
-            // ожидаемая
+            // 2) Ожидаемая
             var exp = SummaryItems[1];
             bool ok = int.TryParse(exp.Value, out int expected) && expected >= 0;
             if (!ok) expected = -1;
 
-            // расхождение
+            // 3) Расхождение и статус
             var diff = SummaryItems[2];
             if (expected < 0)
             {
@@ -109,12 +109,13 @@ namespace CashCalculator
             }
             else
             {
-                int d = _register.CalculateDifference(expected);
-                diff.Value  = $"{d} ₽";
-                diff.Status = d switch {
-                  0   => SummaryStatus.OK,
-                  < 0 => SummaryStatus.Under,
-                  > 0 => SummaryStatus.Over
+                int delta = _register.CalculateDifference(expected);
+                diff.Value  = $"{delta} ₽";
+                diff.Status = delta switch
+                {
+                    0   => SummaryStatus.OK,
+                    < 0 => SummaryStatus.Under,
+                    > 0 => SummaryStatus.Over
                 };
             }
 
@@ -126,6 +127,19 @@ namespace CashCalculator
         {
             UpdateTotals();
             Clipboard.SetText(_register.ToString());
+        }
+
+        /// <summary>
+        /// Чистит таблицы: сбрасывает все количества купюр и очищает поле «Должно получиться»,
+        /// но не трогает состояние фильтров.
+        /// </summary>
+        private void Clean_Click(object s, RoutedEventArgs e)
+        {
+            foreach (var denom in Denominations)
+                denom.Amount = 0;
+
+            SummaryItems[1].Value = string.Empty;
+            UpdateTotals();
         }
 
         private void AutoUpdateCheckBox_Checked(object s, RoutedEventArgs e)   { /*…*/ }
