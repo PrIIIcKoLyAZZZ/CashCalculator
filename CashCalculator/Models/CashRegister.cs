@@ -52,6 +52,7 @@ namespace CashCalculator.Models
         public override string ToString()
         {
             var sb = new StringBuilder();
+            sb.AppendLine("Результат пересчета купюр:");
             foreach (var d in _denoms)
             {
                 if (d.Amount > 0)

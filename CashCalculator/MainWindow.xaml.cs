@@ -1,13 +1,14 @@
-﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Shapes;
+using System.Windows.Media.Animation;
 using CashCalculator.Models;
 
 namespace CashCalculator
@@ -15,53 +16,109 @@ namespace CashCalculator
     public partial class MainWindow : Window
     {
         private readonly CashRegister _register = new();
+        private bool   _isTouchMode;
+        private string _buffer = "";
+        private DataGridCell _activeCell;
 
-        public ObservableCollection<Denomination> Denominations { get; }
-        public ObservableCollection<SummaryItem> SummaryItems { get; }
+        public ObservableCollection<Denomination>       Denominations       { get; }
+        public ObservableCollection<SummaryItem>        SummaryItems        { get; }
         public ObservableCollection<DenominationFilter> DenominationFilters { get; }
 
         public MainWindow()
         {
             InitializeComponent();
 
-            // 1) Номиналы
-            Denominations = new ObservableCollection<Denomination>(_register.GetDenominations());
-
-            // 2) Итоги
-            SummaryItems = new ObservableCollection<SummaryItem>
+            /* ---- модели ---- */
+            Denominations = new(_register.GetDenominations());
+            SummaryItems  = new()
             {
-                new("Сумма",              "0 ₽", SummaryStatus.None),
-                new("Должно получиться",  "",   SummaryStatus.None),
-                new("Расхождение",        "—",  SummaryStatus.None),
+                new("Сумма",             "0 ₽", SummaryStatus.None),
+                new("Должно получиться", "",    SummaryStatus.None),
+                new("Расхождение",       "—",   SummaryStatus.None)
             };
-
-            // 3) Фильтры
-            DenominationFilters = new ObservableCollection<DenominationFilter>(
+            DenominationFilters = new(
                 Denominations.Select(d =>
                 {
                     var f = new DenominationFilter(d.Value, true);
-                    f.PropertyChanged += (_, __) =>
+                    f.PropertyChanged += (_,__) =>
                         ((CollectionViewSource)FindResource("DenomsViewSource")).View.Refresh();
                     return f;
-                })
-            );
+                }));
 
-            // 4) DataContext и источники
             DataContext = this;
-            var cvs = (CollectionViewSource)FindResource("DenomsViewSource");
-            cvs.Source = Denominations;
-            DenomsGrid.ItemsSource  = cvs.View;
-            SummaryGrid.ItemsSource = SummaryItems;
 
-            // 5) Скруглённые углы
-            DenomBorder.SizeChanged   += ClipBorder(DenomBorder);
-            SummaryBorder.SizeChanged += ClipBorder(SummaryBorder);
+            ((CollectionViewSource)FindResource("DenomsViewSource")).Source = Denominations;
+            SummaryGrid.ItemsSource = SummaryItems;            // ← таблица «Итого»
 
-            // 6) Первый расчёт
+            /* ---- анимация Popup ---- */
+            NumpadPopup.Opened += (_,__) =>
+            {
+                if (NumpadPopup.Child is Border b &&
+                    b.RenderTransform is ScaleTransform st)
+                {
+                    var anim = new DoubleAnimation(0.8, 1, TimeSpan.FromMilliseconds(150))
+                    { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+                    st.BeginAnimation(ScaleTransform.ScaleXProperty, anim);
+                    st.BeginAnimation(ScaleTransform.ScaleYProperty, anim);
+                }
+            };
+
             UpdateTotals();
         }
 
-        private void DenomsFilter(object sender, FilterEventArgs e)
+        /* ---------- Touch-режим ---------- */
+        private void TouchModeButton_Checked  (object s, RoutedEventArgs e) => _isTouchMode = true;
+        private void TouchModeButton_Unchecked(object s, RoutedEventArgs e) => _isTouchMode = false;
+
+        private void DenomsGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!_isTouchMode) return;
+            if (TryFindParent<DataGridCell>((DependencyObject)e.OriginalSource, out var cell) &&
+                cell.Column.Header?.ToString() == "Кол-во")
+            {
+                e.Handled     = true;
+                _activeCell   = cell;
+                _buffer       = "";
+                NumpadDisplay.Text = "";
+                NumpadPopup.IsOpen = true;
+            }
+        }
+
+        /* ---------- Numpad ---------- */
+        private void Numpad_OnDigit(object s, RoutedEventArgs e)
+        {
+            _buffer += ((Button)s).Content;
+            NumpadDisplay.Text = _buffer;
+        }
+
+        private void Numpad_OnBackspace(object s, RoutedEventArgs e)
+        {
+            if (_buffer.Length > 0)
+                _buffer = _buffer[..^1];
+            NumpadDisplay.Text = _buffer;
+        }
+
+        private void Numpad_OnEnter(object s, RoutedEventArgs e)
+        {
+            if (int.TryParse(_buffer, out int v) && _activeCell?.DataContext is Denomination d)
+            {
+                d.Amount = v;
+                UpdateTotals();
+            }
+            NumpadPopup.IsOpen = false;
+        }
+
+        /* ---------- фильтр и валидация ---------- */
+        private static readonly Regex _digitsOnly = new("[^0-9]+");
+        private void DataGrid_PreviewTextInput(object s, TextCompositionEventArgs e)
+            => e.Handled = _digitsOnly.IsMatch(e.Text);
+
+        private void DenomsGrid_CellEditEnding  (object s, DataGridCellEditEndingEventArgs e)
+            => Dispatcher.InvokeAsync(UpdateTotals);
+        private void SummaryGrid_CellEditEnding(object s, DataGridCellEditEndingEventArgs e)
+            => Dispatcher.InvokeAsync(UpdateTotals);
+
+        private void DenomsFilter(object s, FilterEventArgs e)
         {
             if (e.Item is Denomination d)
             {
@@ -70,48 +127,23 @@ namespace CashCalculator
             }
         }
 
-        private SizeChangedEventHandler ClipBorder(Border b) => (s, e) =>
-        {
-            b.Clip = new RectangleGeometry(
-                new Rect(0, 0, b.ActualWidth, b.ActualHeight),
-                b.CornerRadius.TopLeft,
-                b.CornerRadius.TopLeft);
-        };
-
-        // Ввод только цифр
-        private static readonly Regex _digitsOnly = new("[^0-9]+");
-        private void DataGrid_PreviewTextInput(object s, TextCompositionEventArgs e) =>
-            e.Handled = _digitsOnly.IsMatch(e.Text);
-
-        private void DenomsGrid_CellEditEnding(object s, DataGridCellEditEndingEventArgs e) =>
-            Dispatcher.InvokeAsync(UpdateTotals);
-
-        private void SummaryGrid_CellEditEnding(object s, DataGridCellEditEndingEventArgs e) =>
-            Dispatcher.InvokeAsync(UpdateTotals);
-
+        /* ---------- Totals ---------- */
         private void UpdateTotals()
         {
-            // 1) Сумма
-            int sum = _register.TotalSum();
-            SummaryItems[0].Value = $"{sum} ₽";
+            SummaryItems[0].Value = $"{_register.TotalSum()} ₽";
 
-            // 2) Ожидаемая
-            var exp = SummaryItems[1];
-            bool ok = int.TryParse(exp.Value, out int expected) && expected >= 0;
-            if (!ok) expected = -1;
+            bool ok = int.TryParse(SummaryItems[1].Value, out int expected) && expected >= 0;
+            int delta = ok ? _register.CalculateDifference(expected) : 0;
 
-            // 3) Расхождение и статус
-            var diff = SummaryItems[2];
-            if (expected < 0)
+            if (!ok)
             {
-                diff.Value  = "—";
-                diff.Status = SummaryStatus.None;
+                SummaryItems[2].Value  = "—";
+                SummaryItems[2].Status = SummaryStatus.None;
             }
             else
             {
-                int delta = _register.CalculateDifference(expected);
-                diff.Value  = $"{delta} ₽";
-                diff.Status = delta switch
+                SummaryItems[2].Value  = $"{delta} ₽";
+                SummaryItems[2].Status = delta switch
                 {
                     0   => SummaryStatus.OK,
                     < 0 => SummaryStatus.Under,
@@ -119,32 +151,36 @@ namespace CashCalculator
                 };
             }
 
+            /* --- ОБНОВЛЯЕМ ТАБЛИЦЫ --- */
             DenomsGrid.Items.Refresh();
             SummaryGrid.Items.Refresh();
         }
 
+        /* ---------- Copy & Clean ---------- */
         private void CopyReport_Click(object s, RoutedEventArgs e)
         {
             UpdateTotals();
             Clipboard.SetText(_register.ToString());
         }
 
-        /// <summary>
-        /// Чистит таблицы: сбрасывает все количества купюр и очищает поле «Должно получиться»,
-        /// но не трогает состояние фильтров.
-        /// </summary>
         private void Clean_Click(object s, RoutedEventArgs e)
         {
-            foreach (var denom in Denominations)
-                denom.Amount = 0;
-
-            SummaryItems[1].Value = string.Empty;
-            UpdateTotals();
+            foreach (var d in Denominations) d.Amount = 0;
+            SummaryItems[1].Value = "";
+            UpdateTotals();          // вызовет Refresh() через UpdateTotals
         }
 
-        private void AutoUpdateCheckBox_Checked(object s, RoutedEventArgs e)   { /*…*/ }
-        private void AutoUpdateCheckBox_Unchecked(object s, RoutedEventArgs e) { /*…*/ }
-        private void DarkThemeCheckBox_Checked(object s, RoutedEventArgs e)     { /*…*/ }
-        private void DarkThemeCheckBox_Unchecked(object s, RoutedEventArgs e)   { /*…*/ }
+        /* ---------- helper ---------- */
+        private static bool TryFindParent<T>(DependencyObject start, out T parent) where T : DependencyObject
+        {
+            var cur = start;
+            while (cur != null)
+            {
+                if (cur is T p) { parent = p; return true; }
+                cur = VisualTreeHelper.GetParent(cur);
+            }
+            parent = null;
+            return false;
+        }
     }
 }
