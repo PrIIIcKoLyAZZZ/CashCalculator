@@ -22,6 +22,7 @@ namespace CashCalculator.Models
                 new Denomination(50,   0),
                 new Denomination(10,   0),
                 new Denomination(5,    0),
+                new Denomination(2,    0),
                 new Denomination(1,    0),
             };
         }

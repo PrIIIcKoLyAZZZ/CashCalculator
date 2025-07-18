@@ -1,22 +1,25 @@
 ﻿<Application x:Class="CashCalculator.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             StartupUri="MainWindow.xaml">
+             Startup="OnStartup"
+             Exit="OnExit">
     <Application.Resources>
         <ResourceDictionary>
-            <!-- Default brushes -->
-            <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FFF0F0F0"/>
-            <SolidColorBrush x:Key="WindowForegroundBrush" Color="#FF1E1E1E"/>
-            <SolidColorBrush x:Key="DataGridRowBackgroundBrush" Color="#FFFFFFFF"/>
-            <SolidColorBrush x:Key="DataGridAlternationRowBackgroundBrush" Color="#FFFAFAFA"/>
-            <SolidColorBrush x:Key="DataGridBorderBrush" Color="#FFCCCCCC"/>
-            <SolidColorBrush x:Key="AccentBrush" Color="#FF4F94CD"/>
 
-            <!-- Merge light theme on top -->
+            <!-- 1) Сливаем темы -->
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Themes/DefaultTheme.xaml"/>
                 <ResourceDictionary Source="Themes/LightTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- 2) Ваши кисти по-умолчанию -->
+            <SolidColorBrush x:Key="WindowBackgroundBrush"                  Color="#FFF0F0F0"/>
+            <SolidColorBrush x:Key="WindowForegroundBrush"                  Color="#FF1E1E1E"/>
+            <SolidColorBrush x:Key="DataGridRowBackgroundBrush"             Color="#FFFFFFFF"/>
+            <SolidColorBrush x:Key="DataGridAlternationRowBackgroundBrush"  Color="#FFFAFAFA"/>
+            <SolidColorBrush x:Key="DataGridBorderBrush"                    Color="#FFCCCCCC"/>
+            <SolidColorBrush x:Key="AccentBrush"                            Color="#FF4F94CD"/>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>
