@@ -1,15 +1,46 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Светлая тема: фон окна светло-серый, текст темно-серый -->
+    <!--
+        WindowBackgroundBrush:
+        The window background color for the light theme.
+        A light neutral gray to provide a soft backdrop.
+    -->
     <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FFF0F0F0"/>
+
+    <!--
+        WindowForegroundBrush:
+        The main text and foreground color for the light theme.
+        A dark gray for clear contrast against the light background.
+    -->
     <SolidColorBrush x:Key="WindowForegroundBrush" Color="#FF1E1E1E"/>
 
-    <!-- Таблица: строки чуть светлее окна, чередование слегка темнее -->
+    <!--
+        DataGridRowBackgroundBrush:
+        Background color for normal rows in data grid controls.
+        Pure white for a clean, bright appearance.
+    -->
     <SolidColorBrush x:Key="DataGridRowBackgroundBrush" Color="#FFFFFFFF"/>
+
+    <!--
+        DataGridAlternationRowBackgroundBrush:
+        Background color for alternating rows in data grids.
+        A very light off-white to subtly distinguish every other row.
+    -->
     <SolidColorBrush x:Key="DataGridAlternationRowBackgroundBrush" Color="#FFFAFAFA"/>
+
+    <!--
+        DataGridBorderBrush:
+        Brush for grid lines and borders surrounding data grid cells.
+        A light gray for gentle delineation without overpowering contrast.
+    -->
     <SolidColorBrush x:Key="DataGridBorderBrush" Color="#FFCCCCCC"/>
 
-    <!-- Акцентная кисть для кнопки -->
+    <!--
+        AccentBrush:
+        Accent color used for interactive elements like buttons.
+        A medium blue that stands out against the light theme.
+    -->
     <SolidColorBrush x:Key="AccentBrush" Color="#FF4F94CD"/>
+
 </ResourceDictionary>

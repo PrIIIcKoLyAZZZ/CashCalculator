@@ -1,15 +1,15 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Тёмная тема: фон окна тёмно-серый, текст — почти белый -->
+    <!-- Dark theme: window background is dark gray, text is almost white -->
     <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FF2D2D30"/>
     <SolidColorBrush x:Key="WindowForegroundBrush" Color="#FFE5E5E5"/>
 
-    <!-- Таблица: строки чуть светлее фона, чередование чуть темнее -->
+    <!-- Data grid: rows slightly lighter than background, alternating rows slightly darker -->
     <SolidColorBrush x:Key="DataGridRowBackgroundBrush" Color="#FF3E3E42"/>
     <SolidColorBrush x:Key="DataGridAlternationRowBackgroundBrush" Color="#FF343437"/>
     <SolidColorBrush x:Key="DataGridBorderBrush" Color="#FF555555"/>
 
-    <!-- Акцент для кнопки -->
+    <!-- Accent brush for buttons and highlights -->
     <SolidColorBrush x:Key="AccentBrush" Color="#FF569CD6"/>
 </ResourceDictionary>

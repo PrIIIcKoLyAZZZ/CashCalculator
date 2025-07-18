@@ -2,13 +2,46 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Fallback brushes (identical to LightTheme) -->
+    <!--
+        WindowBackgroundBrush:
+        The background color for application windows and panels.
+        Fallback to a light neutral gray for the default (light) theme.
+    -->
     <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FFF0F0F0"/>
+
+    <!--
+        WindowForegroundBrush:
+        The primary text and foreground color for window chrome, labels, and controls.
+        Uses a dark near-black tone for contrast on the light background.
+    -->
     <SolidColorBrush x:Key="WindowForegroundBrush" Color="#FF1E1E1E"/>
 
+    <!--
+        DataGridRowBackgroundBrush:
+        The background color for regular rows in data grids and lists.
+        Pure white to maintain a clean, light appearance.
+    -->
     <SolidColorBrush x:Key="DataGridRowBackgroundBrush" Color="#FFFFFFFF"/>
+
+    <!--
+        DataGridAlternationRowBackgroundBrush:
+        The background color for alternating rows in data grids to improve readability.
+        A very light off-white to subtly differentiate from the regular row background.
+    -->
     <SolidColorBrush x:Key="DataGridAlternationRowBackgroundBrush" Color="#FFFAFAFA"/>
+
+    <!--
+        DataGridBorderBrush:
+        The brush used for gridlines and borders around DataGrid cells and tables.
+        A light gray to provide subtle delineation without strong contrast.
+    -->
     <SolidColorBrush x:Key="DataGridBorderBrush" Color="#FFCCCCCC"/>
 
+    <!--
+        AccentBrush:
+        The accent color for interactive elements such as buttons, hyperlinks, and highlights.
+        A medium blue that stands out against the light theme for primary actions.
+    -->
     <SolidColorBrush x:Key="AccentBrush" Color="#FF4F94CD"/>
+
 </ResourceDictionary>

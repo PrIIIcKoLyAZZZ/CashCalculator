@@ -6,77 +6,112 @@ using CashCalculator.Models;
 
 namespace CashCalculator
 {
+    /// <summary>
+    /// Application entry point for the CashCalculator WPF application.
+    /// Handles loading and saving of user settings on startup and exit.
+    /// </summary>
     public partial class App : Application
     {
-        // Репозиторий для сериализации настроек
-        private readonly JsonRepository<AppSettings> _repo
-            = new JsonRepository<AppSettings>("settings.json");
+        /// <summary>
+        /// Repository for persisting <see cref="AppSettings"/> to a JSON file.
+        /// </summary>
+        private readonly JsonRepository<AppSettings> _repo =
+            new JsonRepository<AppSettings>("settings.json");
 
-        // Сохранённые настройки приложения
+        /// <summary>
+        /// The settings loaded from the JSON file at application startup.
+        /// </summary>
         public static AppSettings CurrentSettings { get; private set; } = null!;
 
-        // Храним ссылку на главное окно, чтобы потом собрать из него настройки
+        /// <summary>
+        /// Reference to the main window, needed for applying and saving settings.
+        /// </summary>
         private MainWindow _mainWindow = null!;
 
+        /// <summary>
+        /// Handles the Startup event of the application.
+        /// Loads saved settings, applies them to the main window, and shows the window.
+        /// </summary>
+        /// <param name="sender">The source of the Startup event.</param>
+        /// <param name="e">Event data for the Startup event.</param>
         private void OnStartup(object sender, StartupEventArgs e)
         {
-            // 1. Загружаем настройки из %APPDATA%\…\settings.json
+            // 1. Load settings from %APPDATA%\KremenchugskayaTeam\CashCalculator\settings.json
             CurrentSettings = _repo.Load();
 
-            // 2. Создаём окно и сохраняем в поле
+            // 2. Create and initialize the main window
             _mainWindow = new MainWindow();
 
-            // 3. Применяем видимость номиналов
-            foreach (var filter in _mainWindow.DenominationFilters)
+            // 3. Apply saved visibility filters for each denomination
+            foreach (var f in _mainWindow.DenominationFilters)
             {
-                var saved = CurrentSettings.Filters
-                    .FirstOrDefault(x => x.Value == filter.Value);
-                if (saved != null)
-                    filter.IsVisible = saved.IsVisible;
+                var savedFilter = CurrentSettings.Filters
+                    .FirstOrDefault(x => x.Value == f.Value);
+                if (savedFilter != null)
+                    f.IsVisible = savedFilter.IsVisible;
             }
 
-            // 4. Применяем сохранённые количества купюр
-            foreach (var denom in _mainWindow.Denominations)
+            // 4. Apply saved counts for each denomination
+            foreach (var d in _mainWindow.Denominations)
             {
-                var saved = CurrentSettings.Denominations
-                    .FirstOrDefault(x => x.Value == denom.Value);
-                if (saved != null)
-                    denom.Amount = saved.Amount;
+                var savedState = CurrentSettings.Denominations
+                    .FirstOrDefault(x => x.Value == d.Value);
+                if (savedState != null)
+                    d.Amount = savedState.Amount;
             }
 
-            // 5. Применяем последний «должно получиться»
-            _mainWindow.SummaryItems[1].Value = 
-                CurrentSettings.LastExpected.ToString();
+            // 5. Restore the "expected" target sum
+            _mainWindow.SummaryItems[1].Value = CurrentSettings.LastExpected.ToString();
 
-            // 6. Показываем окно
+            // 6. Recalculate totals so sum and difference display immediately
+            _mainWindow.RecalculateTotals();
+
+            // 7. Show the main window
             _mainWindow.Show();
         }
 
+        /// <summary>
+        /// Handles the Exit event of the application.
+        /// Gathers current values from the UI and saves them back to the JSON settings file.
+        /// </summary>
+        /// <param name="sender">The source of the Exit event.</param>
+        /// <param name="e">Event data for the Exit event.</param>
         private void OnExit(object sender, ExitEventArgs e)
         {
-            // Собираем новую модель для сохранения
+            // Parse the current expected value, defaulting to 0 if invalid
+            int expected = int.TryParse(_mainWindow.SummaryItems[1].Value, out var v) && v >= 0
+                ? v
+                : 0;
+
+            // Compute the current total sum and difference
+            int total = _mainWindow.Denominations.Sum(d => d.Amount * d.Value);
+            int diff  = total - expected;
+
+            // Populate settings model for serialization
             var settings = new AppSettings
             {
                 Filters = _mainWindow.DenominationFilters
-                    .Select(f => new DenominationFilterState {
+                    .Select(f => new DenominationFilterState
+                    {
                         Value     = f.Value,
                         IsVisible = f.IsVisible
-                    }).ToList(),
+                    })
+                    .ToList(),
 
                 Denominations = _mainWindow.Denominations
-                    .Select(d => new DenominationState {
+                    .Select(d => new DenominationState
+                    {
                         Value  = d.Value,
                         Amount = d.Amount
-                    }).ToList(),
+                    })
+                    .ToList(),
 
-                LastExpected = int.TryParse(
-                    _mainWindow.SummaryItems[1].Value, 
-                    out var exp) && exp >= 0
-                    ? exp
-                    : 0
+                LastExpected   = expected,
+                LastTotal      = total,
+                LastDifference = diff
             };
 
-            // Сохраняем в JSON
+            // Save settings back to JSON file
             _repo.Save(settings);
         }
     }
