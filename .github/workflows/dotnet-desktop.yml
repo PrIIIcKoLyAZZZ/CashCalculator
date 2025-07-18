@@ -2,27 +2,40 @@ name: Build & Publish
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches:
+      - main
+      - master
   pull_request:
-    branches: [ "main", "master" ]
+    branches:
+      - main
+      - master
 
 jobs:
   build:
     runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
 
+    steps:
+      # 1) Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2) Install .NET 8 SDK
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
+      # 3) Restore your main project
       - name: Restore CashCalculator
         run: dotnet restore CashCalculator/CashCalculator.csproj
 
+      # 4) Build in Release mode without re-restoring
       - name: Build CashCalculator
         run: dotnet build CashCalculator/CashCalculator.csproj --configuration Release --no-restore
 
+      # 5) Publish as a single-file self-contained EXE
       - name: Publish single-file EXE
         run: |
           dotnet publish CashCalculator/CashCalculator.csproj \
@@ -33,8 +46,9 @@ jobs:
             /p:EnableCompressionInSingleFile=true \
             --output publish
 
+      # 6) Upload the publish folder as an artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CashCalculator
+          name: CashCalculator-publish
           path: publish/
