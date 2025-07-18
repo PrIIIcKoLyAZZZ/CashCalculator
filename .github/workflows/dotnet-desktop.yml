@@ -1,44 +1,41 @@
-name: Build, Test & Publish
+name: Build & Publish
 
 on:
   push:
-    branches: [ "master", "main" ]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "master", "main" ]
+    branches: [ "main", "master" ]
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-      # 1) Чекаутим код
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2) Устанавливаем .NET 8 SDK
-      - name: Setup .NET
+      - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      # 3) Восстанавливаем зависимости
-      - name: Restore solution
-        run: dotnet restore CashCalculator.sln
+      # Только основной проект
+      - name: Restore CashCalculator
+        run: dotnet restore CashCalculator/CashCalculator.csproj
 
-      # 4) Сборка
-      - name: Build solution
-        run: dotnet build CashCalculator.sln --configuration Release --no-restore
+      - name: Build CashCalculator
+        run: dotnet build CashCalculator/CashCalculator.csproj \
+          --configuration Release --no-restore
 
-      # 5) Тесты (если есть тестовый проект)
-      - name: Run tests
-        run: dotnet test .\CashCalculator.Tests\CashCalculator.Tests.csproj --configuration Release --no-build
+      # Тестов нет — этот шаг убран
+      # - name: Run tests
+      #   run: dotnet test ...
 
-      # 6) Публикация self-contained single-file
-      - name: Publish single EXE
+      - name: Publish single-file EXE
         run: |
-          dotnet publish CashCalculator\CashCalculator.csproj \
+          dotnet publish CashCalculator/CashCalculator.csproj \
             --configuration Release \
             --runtime win-x64 \
             --self-contained true \
@@ -46,9 +43,8 @@ jobs:
             /p:EnableCompressionInSingleFile=true \
             --output publish
 
-      # 7) Заливаем артефакт (exe и всё в папке publish)
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CashCalculator-publish
+          name: CashCalculator
           path: publish/
