@@ -15,6 +15,7 @@
     <SolidColorBrush x:Key="DataGridRowBackgroundBrush"            Color="#FFFFFFFF"/>
     <SolidColorBrush x:Key="DataGridAlternationRowBackgroundBrush" Color="#FFF7F7F7"/>
     <SolidColorBrush x:Key="DataGridBorderBrush"                   Color="#FFCCCCCC"/>
+    <SolidColorBrush x:Key="AccentBrush"                           Color="#FF4F94CD"/>
 
     <!-- 2) Стили для DataGrid -->
     <Style x:Key="NiceGrid" TargetType="DataGrid">
@@ -49,40 +50,45 @@
       <Setter Property="FontSize" Value="14"/>
     </Style>
 
-    <!-- 3) «Плоская» кнопка -->
+    <!-- 3) «Плоская» кнопка с hover/press -->
     <Style x:Key="FlatButton" TargetType="Button">
       <Setter Property="OverridesDefaultStyle" Value="True"/>
       <Setter Property="Background" Value="Transparent"/>
       <Setter Property="BorderBrush" Value="Transparent"/>
       <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Opacity" Value="1"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <ContentPresenter HorizontalAlignment="Center"
-                              VerticalAlignment="Center"/>
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
           </ControlTemplate>
         </Setter.Value>
       </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Opacity" Value="0.8"/>
+        </Trigger>
+        <Trigger Property="IsPressed" Value="True">
+          <Setter Property="Opacity" Value="0.6"/>
+        </Trigger>
+      </Style.Triggers>
     </Style>
 
     <!-- 4) Источник с фильтром для номиналов -->
-    <CollectionViewSource x:Key="DenomsViewSource"
-                          Filter="DenomsFilter"/>
+    <CollectionViewSource x:Key="DenomsViewSource" Filter="DenomsFilter"/>
   </Window.Resources>
 
   <Grid>
     <TabControl>
-      <!-- ========== Calculator ========== -->
+      <!-- Calculator Tab -->
       <TabItem Header="Calculator">
         <DockPanel Margin="10" LastChildFill="False">
-          <!-- 1) Таблица номиналов -->
-          <Border x:Name="DenomBorder"
-                  CornerRadius="8"
+          <!-- Таблица номиналов -->
+          <Border x:Name="DenomBorder" CornerRadius="8"
                   Background="{StaticResource WindowBackgroundBrush}"
                   BorderBrush="{StaticResource DataGridBorderBrush}"
-                  BorderThickness="1"
-                  Margin="0,0,0,10"
+                  BorderThickness="1" Margin="0,0,0,10"
                   DockPanel.Dock="Top">
             <DataGrid x:Name="DenomsGrid"
                       Style="{StaticResource NiceGrid}"
@@ -104,8 +110,7 @@
                   </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
                 <DataGridTextColumn Header="Номинал, ₽"
-                                    Binding="{Binding Value}"
-                                    Width="*"
+                                    Binding="{Binding Value}" Width="*"
                                     IsReadOnly="True"/>
                 <DataGridTextColumn Header="Кол-во"
                                     Binding="{Binding Amount,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
@@ -114,13 +119,11 @@
             </DataGrid>
           </Border>
 
-          <!-- 2) Таблица итогов -->
-          <Border x:Name="SummaryBorder"
-                  CornerRadius="8"
+          <!-- Таблица итогов -->
+          <Border x:Name="SummaryBorder" CornerRadius="8"
                   Background="{StaticResource WindowBackgroundBrush}"
                   BorderBrush="{StaticResource DataGridBorderBrush}"
-                  BorderThickness="1"
-                  Margin="0,0,0,10"
+                  BorderThickness="1" Margin="0,0,0,10"
                   DockPanel.Dock="Top">
             <DataGrid x:Name="SummaryGrid"
                       Style="{StaticResource NiceGrid}"
@@ -144,8 +147,7 @@
                 </DataGridTemplateColumn>
                 <DataGridTextColumn Header="Итого, ₽"
                                     Binding="{Binding Description}"
-                                    Width="0.8*"
-                                    IsReadOnly="True"/>
+                                    Width="0.8*" IsReadOnly="True"/>
                 <DataGridTextColumn Header=""
                                     Binding="{Binding Value,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
                                     Width="*"/>
@@ -153,23 +155,39 @@
             </DataGrid>
           </Border>
 
-          <!-- 3) Copy-кнопка -->
-          <Border CornerRadius="8"
-                  Background="{StaticResource WindowBackgroundBrush}"
-                  BorderBrush="{StaticResource DataGridBorderBrush}"
-                  BorderThickness="1"
-                  Padding="2"
-                  Margin="0,0,0,10"
-                  DockPanel.Dock="Top"
-                  HorizontalAlignment="Center">
-            <Button Style="{StaticResource FlatButton}"
-                    Content="📋"
-                    ToolTip="Copy to Clipboard"
-                    Width="30" Height="30"
-                    Click="CopyReport_Click"/>
-          </Border>
+          <!-- Кнопки Copy и Clean -->
+          <StackPanel Orientation="Horizontal"
+                      DockPanel.Dock="Top"
+                      HorizontalAlignment="Center"
+                      Margin="0,0,0,10">
+            <!-- Copy -->
+            <Border CornerRadius="8"
+                    Background="{StaticResource WindowBackgroundBrush}"
+                    BorderBrush="{StaticResource DataGridBorderBrush}"
+                    BorderThickness="1"
+                    Padding="2"
+                    Margin="0,0,10,0">
+              <Button Style="{StaticResource FlatButton}"
+                      Content="📋"
+                      ToolTip="Copy to Clipboard"
+                      Width="30" Height="30"
+                      Click="CopyReport_Click"/>
+            </Border>
+            <!-- Clean -->
+            <Border CornerRadius="8"
+                    Background="{StaticResource WindowBackgroundBrush}"
+                    BorderBrush="{StaticResource DataGridBorderBrush}"
+                    BorderThickness="1"
+                    Padding="2">
+              <Button Style="{StaticResource FlatButton}"
+                      Content="🧹"
+                      ToolTip="Clean values (keep filters)"
+                      Width="30" Height="30"
+                      Click="Clean_Click"/>
+            </Border>
+          </StackPanel>
 
-          <!-- 4) Подпись -->
+          <!-- Подпись -->
           <TextBlock DockPanel.Dock="Bottom"
                      Text="© 2025 Kremenchugskaya Team"
                      FontSize="10"
@@ -178,7 +196,7 @@
         </DockPanel>
       </TabItem>
 
-      <!-- ========== Settings ========== -->
+      <!-- Settings Tab -->
       <TabItem Header="Settings">
         <ScrollViewer>
           <StackPanel Margin="10">
