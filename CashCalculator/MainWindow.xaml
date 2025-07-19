@@ -231,7 +231,7 @@
                         PreviewMouseLeftButtonDown="DenomsGrid_PreviewMouseLeftButtonDown">
                 <DataGrid.Columns>
                   <!-- Status Glyph Column -->
-                  <DataGridTemplateColumn Header="" Width="Auto">
+                  <DataGridTemplateColumn Header="" Width="Auto">  
                     <DataGridTemplateColumn.CellTemplate>
                       <DataTemplate>
                         <TextBlock Text="{Binding StatusGlyph}"
@@ -269,7 +269,8 @@
                         CanUserAddRows="False"
                         AutoGenerateColumns="False"
                         CellEditEnding="SummaryGrid_CellEditEnding"
-                        PreviewTextInput="DataGrid_PreviewTextInput">
+                        PreviewTextInput="DataGrid_PreviewTextInput"
+                        PreviewMouseLeftButtonDown="SummaryGrid_PreviewMouseLeftButtonDown">
                 <DataGrid.Columns>
                   <!-- Status Glyph Column -->
                   <DataGridTemplateColumn Header="" Width="Auto">

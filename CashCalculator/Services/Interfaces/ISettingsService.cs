@@ -1,6 +1,6 @@
-using CashCalculator.Infrastructure;
+using CashCalculator.Infrastructure.Data;
 
-namespace CashCalculator.Services
+namespace CashCalculator.Services.Interfaces
 {
     /// <summary>
     /// Defines methods for loading and saving application settings.
