@@ -6,11 +6,9 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using CashCalculator.Infrastructure;
 using CashCalculator.Infrastructure.Data;
 using CashCalculator.Infrastructure.States;
 using CashCalculator.Models;
-using CashCalculator.Services;
 using CashCalculator.Services.Interfaces;
 
 namespace CashCalculator

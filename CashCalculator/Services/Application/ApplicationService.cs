@@ -1,4 +1,3 @@
-using CashCalculator.Services.Data;
 using CashCalculator.Services.Interfaces;
 
 namespace CashCalculator.Services.Application;
