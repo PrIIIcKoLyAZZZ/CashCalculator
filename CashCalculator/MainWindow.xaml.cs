@@ -138,7 +138,7 @@ namespace CashCalculator
         /// <summary>
         /// Appends a digit to the numpad buffer and updates the display.
         /// </summary>
-        private void Numpad_OnDigit(object sender, RoutedEventArgs _) 
+        private void Numpad_OnDigit(object sender, RoutedEventArgs _)
         {
             _buffer += ((Button)sender).Content;
             NumpadDisplay.Text = _buffer;
@@ -166,6 +166,7 @@ namespace CashCalculator
         /// <summary>
         /// Writes the buffered value into the appropriate data context (denomination or expected),
         /// refreshes the grids, updates totals, and resets the buffer.
+        /// Treats empty buffer as zero.
         /// </summary>
         private void CommitBuffer()
         {
@@ -178,7 +179,7 @@ namespace CashCalculator
             }
             else if (_activeCell.DataContext is SummaryItem si)
             {
-                si.Value = string.IsNullOrEmpty(_buffer) ? string.Empty : _buffer;
+                si.Value = string.IsNullOrEmpty(_buffer) ? "0" : _buffer;
                 SummaryGrid.Items.Refresh();
             }
 
@@ -196,7 +197,7 @@ namespace CashCalculator
         /// <summary>
         /// Prevents non-digit characters from being entered in the DataGrids.
         /// </summary>
-        private void DataGrid_PreviewTextInput(object _, TextCompositionEventArgs e) 
+        private void DataGrid_PreviewTextInput(object _, TextCompositionEventArgs e)
             => e.Handled = DigitsOnly.IsMatch(e.Text);
 
         #endregion
@@ -205,6 +206,7 @@ namespace CashCalculator
 
         /// <summary>
         /// Commits manual text edits in the denominations grid and updates totals.
+        /// If the user clears the cell (empty input), it will be treated as zero.
         /// </summary>
         private void DenomsGrid_CellEditEnding(object _, DataGridCellEditEndingEventArgs e)
         {
@@ -212,16 +214,35 @@ namespace CashCalculator
                 e.EditingElement is TextBox tb &&
                 e.Row.Item is Denomination d)
             {
-                d.Amount = string.IsNullOrWhiteSpace(tb.Text) ? 0 : int.Parse(tb.Text);
+                // если пользователь полностью стёр текст — подставляем "0"
+                if (string.IsNullOrWhiteSpace(tb.Text))
+                    tb.Text = "0";
+
+                d.Amount = int.Parse(tb.Text);
             }
             Dispatcher.InvokeAsync(UpdateTotals);
         }
 
         /// <summary>
-        /// Triggers totals recalculation when editing ends in the summary grid.
+        /// Commits manual text edits in the summary grid for the expected amount and updates totals.
+        /// If the user clears the input, it will be treated as zero.
         /// </summary>
-        private void SummaryGrid_CellEditEnding(object _, DataGridCellEditEndingEventArgs __) 
-            => Dispatcher.InvokeAsync(UpdateTotals);
+        private void SummaryGrid_CellEditEnding(object _, DataGridCellEditEndingEventArgs e)
+        {
+            if (e.EditingElement is TextBox tb
+                && e.Row.Item is SummaryItem si
+                && si.Description.StartsWith("Должно"))
+            {
+                // если пользователь полностью стёр текст — подставляем "0"
+                if (string.IsNullOrWhiteSpace(tb.Text))
+                    tb.Text = "0";
+
+                si.Value = tb.Text;
+                SummaryGrid.Items.Refresh();
+            }
+
+            Dispatcher.InvokeAsync(UpdateTotals);
+        }
 
         #endregion
 
