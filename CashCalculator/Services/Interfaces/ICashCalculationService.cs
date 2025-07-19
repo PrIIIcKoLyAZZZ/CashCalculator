@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using CashCalculator.Models;
 using CashCalculator.Services.Calculation;
 
-namespace CashCalculator.Services
+namespace CashCalculator.Services.Interfaces
 {
     /// <summary>
     /// Defines methods for performing cash register calculations:

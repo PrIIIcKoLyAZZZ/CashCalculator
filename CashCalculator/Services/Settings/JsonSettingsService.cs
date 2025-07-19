@@ -1,4 +1,6 @@
 using CashCalculator.Infrastructure;
+using CashCalculator.Infrastructure.Data;
+using CashCalculator.Services.Interfaces;
 
 namespace CashCalculator.Services.Settings
 {
