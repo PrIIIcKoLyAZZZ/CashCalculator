@@ -1,14 +1,14 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using CashCalculator.Infrastructure;
 using CashCalculator.Models;
+using CashCalculator.Services;
 
 namespace CashCalculator
 {
@@ -18,92 +18,127 @@ namespace CashCalculator
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly CashRegister _register = new();
+        private readonly ICashCalculationService _calcService;
+        private readonly ISettingsService        _settingsService;
 
-        private bool _isTouchMode;
-        private string _buffer = string.Empty;
+        private bool          _isTouchMode;
+        private string        _buffer     = string.Empty;
         private DataGridCell? _activeCell;
 
         /// <summary>
-        /// Gets the collection of available denominations bound to the main DataGrid.
+        /// Collection of current currency denominations in the register.
         /// </summary>
         public ObservableCollection<Denomination> Denominations { get; }
 
         /// <summary>
-        /// Gets the collection of summary items ("Total", "Expected", "Difference") bound to the summary DataGrid.
+        /// Collection of summary items: [0]=Total, [1]=Expected, [2]=Difference.
         /// </summary>
         public ObservableCollection<SummaryItem> SummaryItems { get; }
 
         /// <summary>
-        /// Gets the collection of visibility filters for each denomination, bound to the settings UI.
+        /// Collection of visibility filters for each denomination row in the UI.
         /// </summary>
-        public ObservableCollection<DenominationFilter> DenominationFilters { get; }
+        public ObservableCollection<DenominationFilter> DenominationFilters { get; private set; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MainWindow"/> class,
-        /// sets up data collections, bindings, and loads initial totals.
+        /// Initializes a new instance of the <see cref="MainWindow"/> class.
         /// </summary>
-        public MainWindow()
+        /// <param name="calcService">The service used to perform cash calculations.</param>
+        /// <param name="settingsService">The service used to load and save application settings.</param>
+        /// <param name="settings">Previously loaded application settings.</param>
+        public MainWindow(
+            ICashCalculationService calcService,
+            ISettingsService        settingsService,
+            AppSettings             settings)
         {
             InitializeComponent();
 
-            Denominations = new(_register.GetDenominations());
+            _calcService     = calcService;
+            _settingsService = settingsService;
 
-            SummaryItems = new()
-            {
-                new("Сумма",             "0 ₽", SummaryStatus.None),
-                new("Должно получиться", "",    SummaryStatus.None),
-                new("Расхождение",       "—",   SummaryStatus.None)
-            };
+            // 1) Initialize the denominations collection
+            Denominations = new ObservableCollection<Denomination>(
+                new CashRegister().GetDenominations()
+            );
 
-            DenominationFilters = new(
+            // 2) Initialize filters before setting the collection source
+            DenominationFilters = new ObservableCollection<DenominationFilter>(
                 Denominations.Select(d =>
                 {
                     var f = new DenominationFilter(d.Value, true);
                     f.PropertyChanged += (_, __) =>
-                        ((CollectionViewSource)FindResource("DenomsViewSource")).View.Refresh();
+                    {
+                        var cvs = (CollectionViewSource)FindResource("DenomsViewSource");
+                        cvs.View?.Refresh();
+                    };
                     return f;
-                }));
+                })
+            );
 
+            // 3) Apply saved filter states
+            foreach (var sf in settings.Filters)
+            {
+                var f = DenominationFilters.FirstOrDefault(x => x.Value == sf.Value);
+                if (f != null)
+                    f.IsVisible = sf.IsVisible;
+            }
+
+            // 4) Bind DataContext and configure the CollectionViewSource
             DataContext = this;
-            ((CollectionViewSource)FindResource("DenomsViewSource")).Source = Denominations;
+            var denomsViewSource = (CollectionViewSource)FindResource("DenomsViewSource");
+            denomsViewSource.Filter += DenomsFilter;
+            denomsViewSource.Source = Denominations;
+
+            // 5) Initialize the summary items
+            SummaryItems = new ObservableCollection<SummaryItem>
+            {
+                new("Total",             "0 ₽", SummaryStatus.None),
+                new("Expected Amount",   settings.LastExpected.ToString(), SummaryStatus.None),
+                new("Difference",        "—",    SummaryStatus.None)
+            };
             SummaryGrid.ItemsSource = SummaryItems;
 
+            // 6) Apply saved denomination amounts
+            foreach (var ds in settings.Denominations)
+            {
+                var d = Denominations.FirstOrDefault(x => x.Value == ds.Value);
+                if (d != null)
+                    d.Amount = ds.Amount;
+            }
+
+            // 7) Perform initial totals calculation
             UpdateTotals();
         }
 
-        #region Touch Mode
+        #region Touch Mode and NumPad
 
         /// <summary>
-        /// Enables touch (numpad) input mode when the toggle button is checked.
+        /// Enables touch (numpad) input mode.
         /// </summary>
-        private void TouchModeButton_Checked(object _, RoutedEventArgs __) => _isTouchMode = true;
+        private void TouchModeButton_Checked(object _, RoutedEventArgs __)   => _isTouchMode = true;
 
         /// <summary>
-        /// Disables touch input mode when the toggle button is unchecked.
+        /// Disables touch (numpad) input mode.
         /// </summary>
         private void TouchModeButton_Unchecked(object _, RoutedEventArgs __) => _isTouchMode = false;
 
         /// <summary>
-        /// Opens the numpad popup with the specified initial buffer value.
+        /// Opens the numpad popup for the specified cell with the given initial text.
         /// </summary>
-        /// <param name="cell">The cell that will receive the numpad input.</param>
-        /// <param name="initial">The initial numeric string to populate in the buffer.</param>
         private void OpenNumpad(DataGridCell cell, string initial)
         {
             _activeCell = cell;
-            _buffer = initial;
+            _buffer     = initial;
             NumpadDisplay.Text = initial;
             NumpadPopup.IsOpen = true;
         }
 
         /// <summary>
-        /// Handles mouse clicks on the denominations grid to show numpad in touch mode.
+        /// Handles click on denomination cells in touch mode to open the numpad.
         /// </summary>
         private void DenomsGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (!_isTouchMode) return;
-
             if (TryFindParent<DataGridCell>((DependencyObject)e.OriginalSource, out var cell) &&
                 cell.Column.Header?.ToString() == "Кол-во")
             {
@@ -114,16 +149,15 @@ namespace CashCalculator
         }
 
         /// <summary>
-        /// Handles mouse clicks on the summary grid to show numpad for the "Expected" field in touch mode.
+        /// Handles click on the expected sum cell in touch mode to open the numpad.
         /// </summary>
         private void SummaryGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (!_isTouchMode) return;
-
             if (TryFindParent<DataGridCell>((DependencyObject)e.OriginalSource, out var cell) &&
                 cell.Column.DisplayIndex == 2 &&
                 cell.DataContext is SummaryItem si &&
-                si.Description.StartsWith("Должно"))
+                si.Description.StartsWith("Expected"))
             {
                 e.Handled = true;
                 var val = si.Value.TrimEnd(' ', '₽');
@@ -131,12 +165,8 @@ namespace CashCalculator
             }
         }
 
-        #endregion
-
-        #region Numpad Input
-
         /// <summary>
-        /// Appends a digit to the numpad buffer and updates the display.
+        /// Appends a digit to the numpad buffer.
         /// </summary>
         private void Numpad_OnDigit(object sender, RoutedEventArgs _)
         {
@@ -155,7 +185,7 @@ namespace CashCalculator
         }
 
         /// <summary>
-        /// Commits the buffer to the active cell and closes the numpad popup.
+        /// Commits the numpad buffer to the active cell and closes the popup.
         /// </summary>
         private void Numpad_OnEnter(object _, RoutedEventArgs __)
         {
@@ -164,9 +194,7 @@ namespace CashCalculator
         }
 
         /// <summary>
-        /// Writes the buffered value into the appropriate data context (denomination or expected),
-        /// refreshes the grids, updates totals, and resets the buffer.
-        /// Treats empty buffer as zero.
+        /// Writes the buffered value into the active cell and triggers totals update.
         /// </summary>
         private void CommitBuffer()
         {
@@ -184,29 +212,24 @@ namespace CashCalculator
             }
 
             UpdateTotals();
-            _buffer = string.Empty;
+            _buffer     = string.Empty;
             _activeCell = null;
         }
 
         #endregion
 
-        #region Keyboard Input Validation
+        #region Input Validation and Editing
 
-        private static readonly Regex DigitsOnly = new("[^0-9]+");
+        private static readonly Regex DigitsOnlyRegex = new("[^0-9]+");
 
         /// <summary>
-        /// Prevents non-digit characters from being entered in the DataGrids.
+        /// Prevents non-numeric input in data grid cells.
         /// </summary>
         private void DataGrid_PreviewTextInput(object _, TextCompositionEventArgs e)
-            => e.Handled = DigitsOnly.IsMatch(e.Text);
-
-        #endregion
-
-        #region Cell Edit Handling
+            => e.Handled = DigitsOnlyRegex.IsMatch(e.Text);
 
         /// <summary>
-        /// Commits manual text edits in the denominations grid and updates totals.
-        /// If the user clears the cell (empty input), it will be treated as zero.
+        /// Commits edits in the denomination grid, defaulting empty values to zero.
         /// </summary>
         private void DenomsGrid_CellEditEnding(object _, DataGridCellEditEndingEventArgs e)
         {
@@ -214,33 +237,26 @@ namespace CashCalculator
                 e.EditingElement is TextBox tb &&
                 e.Row.Item is Denomination d)
             {
-                // если пользователь полностью стёр текст — подставляем "0"
                 if (string.IsNullOrWhiteSpace(tb.Text))
                     tb.Text = "0";
-
                 d.Amount = int.Parse(tb.Text);
             }
             Dispatcher.InvokeAsync(UpdateTotals);
         }
 
         /// <summary>
-        /// Commits manual text edits in the summary grid for the expected amount and updates totals.
-        /// If the user clears the input, it will be treated as zero.
+        /// Commits edits in the summary grid, defaulting empty expected values to zero.
         /// </summary>
         private void SummaryGrid_CellEditEnding(object _, DataGridCellEditEndingEventArgs e)
         {
-            if (e.EditingElement is TextBox tb
-                && e.Row.Item is SummaryItem si
-                && si.Description.StartsWith("Должно"))
+            if (e.EditingElement is TextBox tb &&
+                e.Row.Item is SummaryItem si &&
+                si.Description.StartsWith("Expected"))
             {
-                // если пользователь полностью стёр текст — подставляем "0"
                 if (string.IsNullOrWhiteSpace(tb.Text))
                     tb.Text = "0";
-
                 si.Value = tb.Text;
-                SummaryGrid.Items.Refresh();
             }
-
             Dispatcher.InvokeAsync(UpdateTotals);
         }
 
@@ -249,10 +265,16 @@ namespace CashCalculator
         #region Filtering
 
         /// <summary>
-        /// Filters the denominations view based on the user's visibility settings.
+        /// Filters denominations based on the current visibility settings.
         /// </summary>
-        private void DenomsFilter(object _, FilterEventArgs e)
+        private void DenomsFilter(object sender, FilterEventArgs e)
         {
+            if (DenominationFilters == null)
+            {
+                e.Accepted = true;
+                return;
+            }
+
             if (e.Item is Denomination d)
             {
                 var flt = DenominationFilters.FirstOrDefault(f => f.Value == d.Value);
@@ -265,53 +287,52 @@ namespace CashCalculator
         #region Totals Calculation
 
         /// <summary>
-        /// Updates the summary items: total sum, expected value, and difference with status.
+        /// Updates the summary display with current total, expected, and difference.
         /// </summary>
         private void UpdateTotals()
         {
-            SummaryItems[0].Value = $"{_register.TotalSum()} ₽";
+            var total = _calcService.CalculateTotal(Denominations);
+            SummaryItems[0].Value = $"{total} ₽";
 
-            bool valid = int.TryParse(SummaryItems[1].Value, out int expected) && expected >= 0;
-            int delta = valid ? _register.CalculateDifference(expected) : 0;
-
+            bool valid = int.TryParse(SummaryItems[1].Value, out var expected) && expected >= 0;
             if (!valid)
             {
-                SummaryItems[2].Value = "—";
+                SummaryItems[2].Value  = "—";
                 SummaryItems[2].Status = SummaryStatus.None;
             }
             else
             {
-                SummaryItems[2].Value = $"{delta} ₽";
-                SummaryItems[2].Status = delta switch
-                {
-                    0   => SummaryStatus.OK,
-                    < 0 => SummaryStatus.Under,
-                    > 0 => SummaryStatus.Over
-                };
+                var diff = _calcService.CalculateDifference(total, expected);
+                SummaryItems[2].Value  = $"{diff} ₽";
+                SummaryItems[2].Status = _calcService.GetStatus(diff);
             }
         }
 
         #endregion
 
-        #region Commands
+        #region Copy and Clear Commands
 
         /// <summary>
-        /// Copies the textual cash count report to the clipboard.
+        /// Copies the current register contents summary to the clipboard.
         /// </summary>
         private void CopyReport_Click(object _, RoutedEventArgs __)
         {
             UpdateTotals();
-            Clipboard.SetText(_register.ToString());
+            var register = new CashRegister();
+            foreach (var d in Denominations)
+                register.SetCount(d.Value, d.Amount);
+            Clipboard.SetText(register.ToString());
         }
 
         /// <summary>
-        /// Clears all denomination quantities and the expected value,
-        /// then updates totals.
+        /// Clears all denomination amounts and resets the expected value.
         /// </summary>
         private void Clean_Click(object _, RoutedEventArgs __)
         {
             foreach (var d in Denominations)
                 d.Amount = 0;
+
+            DenomsGrid.Items.Refresh();
             SummaryItems[1].Value = string.Empty;
             UpdateTotals();
         }
@@ -321,23 +342,19 @@ namespace CashCalculator
         #region Helpers
 
         /// <summary>
-        /// Attempts to find an ancestor of the specified type in the visual tree.
+        /// Finds an ancestor of type T in the visual tree.
         /// </summary>
-        /// <typeparam name="T">The type of ancestor to find.</typeparam>
-        /// <param name="start">The starting element for the search.</param>
-        /// <param name="parent">When this method returns, contains the found ancestor, if any.</param>
-        /// <returns>True if an ancestor of type <typeparamref name="T"/> was found; otherwise, false.</returns>
-        private static bool TryFindParent<T>(DependencyObject start, out T parent) where T : DependencyObject
+        private static bool TryFindParent<T>(DependencyObject start, out T parent)
+            where T : DependencyObject
         {
-            DependencyObject? cur = start;
-            while (cur != null)
+            while (start != null)
             {
-                if (cur is T p)
+                if (start is T found)
                 {
-                    parent = p;
+                    parent = found;
                     return true;
                 }
-                cur = VisualTreeHelper.GetParent(cur);
+                start = VisualTreeHelper.GetParent(start);
             }
             parent = null!;
             return false;
@@ -345,12 +362,43 @@ namespace CashCalculator
 
         #endregion
 
-        #region Public API
+        #region Settings Serialization
 
         /// <summary>
-        /// Exposed for <c>App.xaml.cs</c> to trigger a totals recalculation after loading settings.
+        /// Builds a new <see cref="AppSettings"/> instance from current UI state for persistence.
         /// </summary>
-        public void RecalculateTotals() => UpdateTotals();
+        /// <returns>An <see cref="AppSettings"/> reflecting current denominations, filters, and expected value.</returns>
+        public AppSettings GetCurrentSettings()
+        {
+            var cfg = new AppSettings
+            {
+                Filters = DenominationFilters
+                    .Select(f => new DenominationFilterState
+                    {
+                        Value     = f.Value,
+                        IsVisible = f.IsVisible
+                    })
+                    .ToList(),
+
+                Denominations = Denominations
+                    .Select(d => new DenominationState
+                    {
+                        Value  = d.Value,
+                        Amount = d.Amount
+                    })
+                    .ToList(),
+
+                LastExpected = int.TryParse(SummaryItems[1].Value, out var exp) && exp >= 0
+                    ? exp
+                    : 0
+            };
+
+            var total = _calcService.CalculateTotal(Denominations);
+            cfg.LastTotal      = total;
+            cfg.LastDifference = total - cfg.LastExpected;
+
+            return cfg;
+        }
 
         #endregion
     }
