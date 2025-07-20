@@ -1,0 +1,41 @@
+<UserControl x:Class="CashCalculator.Views.SummaryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:CashCalculator.Models">
+    <Grid>
+        <DataGrid x:Name="SummaryGrid"
+                  AutoGenerateColumns="False"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="None"
+                  AlternationCount="2"
+                  RowBackground="{StaticResource DataGridRowBackgroundBrush}"
+                  AlternatingRowBackground="{StaticResource DataGridAlternationRowBackgroundBrush}"
+                  RowHeight="28"
+                  FontSize="14"
+                  BorderBrush="{StaticResource DataGridBorderBrush}"
+                  BorderThickness="1"
+                  SelectionMode="Single"
+                  SelectionUnit="FullRow"
+                  CanUserAddRows="False"
+                  PreviewMouseLeftButtonDown="SummaryGrid_PreviewMouseLeftButtonDown">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="" Width="Auto">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding StatusGlyph}"
+                                       Foreground="{Binding StatusBrush}"
+                                       FontSize="16"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Итого, ₽"
+                                    Binding="{Binding Description}"
+                                    IsReadOnly="True"
+                                    Width="0.8*"/>
+                <DataGridTextColumn Header=""
+                                    Binding="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>
