@@ -3,60 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
         <ResourceDictionary>
-
-            <!--
-                MergedDictionaries:
-                Include theme resource dictionaries in the following order:
-                1. DefaultTheme.xaml (fallback brushes)
-                2. LightTheme.xaml   (overrides for the light theme)
-                This ensures that any brushes not defined in LightTheme fallback to DefaultTheme.
-            -->
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Themes/DefaultTheme.xaml"/>
-                <ResourceDictionary Source="Themes/LightTheme.xaml"/>
+                <!-- Обратите внимание на pack URI -->
+                <ResourceDictionary Source="pack://application:,,,/CashCalculator;component/Resources/ThemeResources.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-
-            <!--
-                Default Brushes:
-                Define application-wide brushes for window background, text, data grid styling,
-                and accent color. These values will apply if not overridden by merged theme dictionaries.
-            -->
-            <!--
-                WindowBackgroundBrush:
-                The default background color for application windows and panels.
-            -->
-            <SolidColorBrush x:Key="WindowBackgroundBrush"                  Color="#FFF0F0F0"/>
-
-            <!--
-                WindowForegroundBrush:
-                The default text and foreground color for window chrome, labels, and controls.
-            -->
-            <SolidColorBrush x:Key="WindowForegroundBrush"                  Color="#FF1E1E1E"/>
-
-            <!--
-                DataGridRowBackgroundBrush:
-                The default background color for normal rows in DataGrid controls.
-            -->
-            <SolidColorBrush x:Key="DataGridRowBackgroundBrush"             Color="#FFFFFFFF"/>
-
-            <!--
-                DataGridAlternationRowBackgroundBrush:
-                The default background color for alternating rows in DataGrid controls.
-            -->
-            <SolidColorBrush x:Key="DataGridAlternationRowBackgroundBrush"  Color="#FFFAFAFA"/>
-
-            <!--
-                DataGridBorderBrush:
-                The default brush used for gridlines and borders in DataGrid controls.
-            -->
-            <SolidColorBrush x:Key="DataGridBorderBrush"                    Color="#FFCCCCCC"/>
-
-            <!--
-                AccentBrush:
-                The default accent color used for interactive elements such as buttons and highlights.
-            -->
-            <SolidColorBrush x:Key="AccentBrush"                            Color="#FF4F94CD"/>
-
         </ResourceDictionary>
     </Application.Resources>
 </Application>

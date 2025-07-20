@@ -1,48 +1,48 @@
 using System;
+using System.ComponentModel;
 
 namespace CashCalculator.Models
 {
     /// <summary>
-    /// Represents a currency denomination with a specific face value and count,
-    /// and provides the total amount for that denomination.
+    /// Represents a currency denomination with change notification.
     /// </summary>
-    public class Denomination
+    public class Denomination : INotifyPropertyChanged
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Denomination"/> class
-        /// with the specified face value and count.
-        /// </summary>
-        /// <param name="value">The face value of the denomination (must be greater than zero).</param>
-        /// <param name="amount">The number of units of this denomination (cannot be negative).</param>
-        /// <exception cref="ArgumentException">
-        /// Thrown if <paramref name="value"/> is less than or equal to zero,
-        /// or if <paramref name="amount"/> is negative.
-        /// </exception>
         public Denomination(int value, int amount)
         {
-            if (value <= 0)
-                throw new ArgumentException("Denomination value must be greater than zero", nameof(value));
-            if (amount < 0)
-                throw new ArgumentException("Denomination amount cannot be negative", nameof(amount));
-
+            if (value <= 0) throw new ArgumentException("Denomination value must be greater than zero", nameof(value));
             Value = value;
-            Amount = amount;
+            _amount = amount;
         }
 
         /// <summary>
-        /// Gets or sets the face value of the denomination (in currency units).
+        /// Face value of the denomination.
         /// </summary>
         public int Value { get; set; }
 
+        private int _amount;
         /// <summary>
-        /// Gets or sets the number of units of this denomination.
+        /// Number of units of this denomination.
         /// </summary>
-        public int Amount { get; set; }
+        public int Amount
+        {
+            get => _amount;
+            set
+            {
+                if (_amount == value) return;
+                _amount = value;
+                OnPropertyChanged(nameof(Amount));
+                OnPropertyChanged(nameof(Total));
+            }
+        }
 
         /// <summary>
-        /// Gets the total amount for this denomination
-        /// (calculated as <see cref="Value"/> × <see cref="Amount"/>).
+        /// Total = Value × Amount.
         /// </summary>
         public int Total => Value * Amount;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string propertyName)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

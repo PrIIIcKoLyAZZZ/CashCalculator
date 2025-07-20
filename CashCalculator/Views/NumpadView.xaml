@@ -1,0 +1,40 @@
+<UserControl x:Class="CashCalculator.Views.NumpadView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Popup x:Name="Popup"
+         AllowsTransparency="True"
+         Placement="Center"
+         StaysOpen="True">
+    <Border CornerRadius="10" Padding="14"
+            Background="White"
+            BorderBrush="{StaticResource DataGridBorderBrush}"
+            BorderThickness="1">
+      <Border.Effect>
+        <DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.35"/>
+      </Border.Effect>
+      <StackPanel>
+        <Border Background="{StaticResource DataGridAlternationRowBackgroundBrush}"
+                CornerRadius="8" Padding="8" Margin="0 0 0 14">
+          <TextBlock x:Name="Display"
+                     FontSize="30"
+                     FontWeight="Bold"
+                     HorizontalAlignment="Center"/>
+        </Border>
+        <UniformGrid Columns="3" Rows="4" HorizontalAlignment="Center">
+          <Button Style="{StaticResource NumpadButton}" Content="1" Click="Digit_Click"/>
+          <Button Style="{StaticResource NumpadButton}" Content="2" Click="Digit_Click"/>
+          <Button Style="{StaticResource NumpadButton}" Content="3" Click="Digit_Click"/>
+          <Button Style="{StaticResource NumpadButton}" Content="4" Click="Digit_Click"/>
+          <Button Style="{StaticResource NumpadButton}" Content="5" Click="Digit_Click"/>
+          <Button Style="{StaticResource NumpadButton}" Content="6" Click="Digit_Click"/>
+          <Button Style="{StaticResource NumpadButton}" Content="7" Click="Digit_Click"/>
+          <Button Style="{StaticResource NumpadButton}" Content="8" Click="Digit_Click"/>
+          <Button Style="{StaticResource NumpadButton}" Content="9" Click="Digit_Click"/>
+          <Button Style="{StaticResource NumpadButton}" Content="⌫" Click="Backspace_Click"/>
+          <Button Style="{StaticResource NumpadButton}" Content="0" Click="Digit_Click"/>
+          <Button Style="{StaticResource NumpadButton}" Content="✓" Click="Enter_Click"/>
+        </UniformGrid>
+      </StackPanel>
+    </Border>
+  </Popup>
+</UserControl>
