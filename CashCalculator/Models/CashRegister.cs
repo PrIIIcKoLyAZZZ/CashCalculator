@@ -100,14 +100,14 @@ namespace CashCalculator.Models
         public override string ToString()
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Cash register summary:");
+            sb.AppendLine("Итоги пересчета:");
             foreach (var d in _denoms)
             {
                 if (d.Amount > 0)
                     sb.AppendLine($"{d.Value}₽ - {d.Amount}");
             }
 
-            sb.Append($"Total: {TotalSum()} ₽");
+            sb.Append($"Итого: {TotalSum()} ₽");
             return sb.ToString();
         }
     }
