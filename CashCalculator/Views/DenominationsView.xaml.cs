@@ -13,10 +13,6 @@ namespace CashCalculator.Views
     public partial class DenominationsView : UserControl
     {
         private readonly CollectionViewSource _viewSource;
-        private ObservableCollection<Denomination>?      _denominations;
-        private ObservableCollection<DenominationFilter>? _filters;
-
-        public event EventHandler<int>? QuantityCellClicked;
 
         public DenominationsView()
         {
@@ -26,38 +22,59 @@ namespace CashCalculator.Views
             DenomsGrid.ItemsSource = _viewSource.View;
         }
 
+        /// <summary>Событие: клик по ячейке "Кол-во". Аргумент — Value номинала.</summary>
+        public event EventHandler<int>? QuantityCellClicked;
+
+        /// <summary>Обновляет содержимое списка и фильтров.</summary>
         public void Refresh(
             ObservableCollection<Denomination> denominations,
             ObservableCollection<DenominationFilter> filters)
         {
-            if (_filters != null)
-                foreach (var f in _filters)
-                    f.PropertyChanged -= OnFilterChanged;
+            // Отпишемся от старых PropertyChanged
+            if (_viewSource.Source is ObservableCollection<Denomination> oldDenoms)
+                foreach (var d in oldDenoms)
+                    d.PropertyChanged -= OnDenominationChanged;
 
-            _denominations = denominations;
-            _filters       = filters;
+            // Подпишемся на новые
+            foreach (var d in denominations)
+                d.PropertyChanged += OnDenominationChanged;
 
-            foreach (var f in _filters)
-                f.PropertyChanged += OnFilterChanged;
+            // Подписка на изменение коллекций, чтобы обновлять фильтр
+            denominations.CollectionChanged += (_, __) => _viewSource.View.Refresh();
+            filters.      CollectionChanged += (_, __) => _viewSource.View.Refresh();
+            foreach (var f in filters)
+                f.PropertyChanged += (_, __) => _viewSource.View.Refresh();
 
-            _viewSource.Source = _denominations;
+            _viewSource.Source = denominations;
             _viewSource.View.Refresh();
         }
 
-        private void OnFilterChanged(object? s, PropertyChangedEventArgs e) 
-            => _viewSource.View.Refresh();
-
-        private void ViewSource_Filter(object s, FilterEventArgs e)
+        private void OnDenominationChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (_filters == null) { e.Accepted = true; return; }
-            if (e.Item is Denomination d)
+            // ничего тут не делаем, пересчёт в MainWindow
+        }
+
+        private void ViewSource_Filter(object sender, FilterEventArgs e)
+        {
+            if (!(e.Item is Denomination d))
             {
-                var flt = _filters.FirstOrDefault(f => f.Value == d.Value);
+                e.Accepted = true;
+                return;
+            }
+
+            // смотрим на фильтры из DataContext (MainWindow)
+            if (DataContext is MainWindow mw)
+            {
+                var flt = mw.DenominationFilters.FirstOrDefault(f => f.Value == d.Value);
                 e.Accepted = flt?.IsVisible ?? true;
+            }
+            else
+            {
+                e.Accepted = true;
             }
         }
 
-        private void DenomsGrid_PreviewMouseLeftButtonDown(object s, System.Windows.Input.MouseButtonEventArgs e)
+        private void DenomsGrid_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (TryFindParent<DataGridCell>(e.OriginalSource as DependencyObject, out var cell)
                 && cell.Column.Header?.ToString() == "Кол-во"
@@ -74,7 +91,11 @@ namespace CashCalculator.Views
             parent = null!;
             while (start != null)
             {
-                if (start is T found) { parent = found; return true; }
+                if (start is T found)
+                {
+                    parent = found;
+                    return true;
+                }
                 start = VisualTreeHelper.GetParent(start);
             }
             return false;

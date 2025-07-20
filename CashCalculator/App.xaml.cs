@@ -5,7 +5,7 @@ namespace CashCalculator
 {
     public partial class App : Application
     {
-        private readonly ApplicationService _appService = new();
+        private readonly ApplicationService _appService = new ApplicationService();
 
         protected override void OnStartup(StartupEventArgs e)
         {

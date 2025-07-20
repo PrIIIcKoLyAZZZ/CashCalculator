@@ -2,38 +2,30 @@ using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Media;
 using CashCalculator.Models;
 
 namespace CashCalculator.Views
 {
-    /// <summary>
-    /// Interaction logic for SummaryView.xaml
-    /// </summary>
     public partial class SummaryView : UserControl
     {
-        /// <summary>
-        /// Пользователь кликнул по ячейке ожидаемого значения.
-        /// </summary>
-        public event EventHandler? ExpectedCellClicked;
-
         public SummaryView()
         {
             InitializeComponent();
         }
 
-        /// <summary>
-        /// Обновляет таблицу результатом расчёта.
-        /// </summary>
+        /// <summary>Событие: клик по ячейке Expected Amount.</summary>
+        public event EventHandler? ExpectedCellClicked;
+
+        /// <summary>Обновляет строки итогов.</summary>
         public void Refresh(ObservableCollection<SummaryItem> items)
         {
             SummaryGrid.ItemsSource = items;
         }
 
-        private void SummaryGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void SummaryGrid_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (TryFindParent<DataGridCell>((DependencyObject)e.OriginalSource, out var cell)
+            if (TryFindParent<DataGridCell>(e.OriginalSource as DependencyObject, out var cell)
                 && cell.Column.DisplayIndex == 2
                 && cell.DataContext is SummaryItem si
                 && si.Description.StartsWith("Expected"))
@@ -43,19 +35,19 @@ namespace CashCalculator.Views
             }
         }
 
-        private bool TryFindParent<T>(DependencyObject source, out T parent)
+        private static bool TryFindParent<T>(DependencyObject? start, out T parent)
             where T : DependencyObject
         {
-            while (source != null)
+            parent = null!;
+            while (start != null)
             {
-                if (source is T found)
+                if (start is T found)
                 {
                     parent = found;
                     return true;
                 }
-                source = VisualTreeHelper.GetParent(source);
+                start = VisualTreeHelper.GetParent(start);
             }
-            parent = null!;
             return false;
         }
     }
