@@ -94,9 +94,9 @@ namespace CashCalculator
             // 5) Initialize the summary items
             SummaryItems = new ObservableCollection<SummaryItem>
             {
-                new("Total",             "0 ₽", SummaryStatus.None),
-                new("Expected Amount",   settings.LastExpected.ToString(), SummaryStatus.None),
-                new("Difference",        "—",    SummaryStatus.None)
+                new("Итого в кассе",             "0 ₽", SummaryStatus.None),
+                new("Должно быть в кассе",   settings.LastExpected.ToString(), SummaryStatus.None),
+                new("Разница",        "—",    SummaryStatus.None)
             };
             SummaryGrid.ItemsSource = SummaryItems;
 
@@ -159,10 +159,10 @@ namespace CashCalculator
             if (TryFindParent<DataGridCell>((DependencyObject)e.OriginalSource, out var cell) &&
                 cell.Column.DisplayIndex == 2 &&
                 cell.DataContext is SummaryItem si &&
-                si.Description.StartsWith("Expected"))
+                si.Description.StartsWith("Должно быть в кассе"))
             {
                 e.Handled = true;
-                var val = si.Value.TrimEnd(' ', '₽');
+                var val = si.Value.TrimEnd('₽', '0');
                 OpenNumpad(cell, val);
             }
         }
