@@ -4,7 +4,7 @@ A lightweight WPF application to quickly tally cash denominations, compare again
 
 ## 📦 Latest Release
 
-[v0.2.1.1](https://github.com/PrIIIcKoLyAZZZ/CashCalculator/releases/tag/v0.2.1.1-beta.4)
+[v0.2.1.2](https://github.com/PrIIIcKoLyAZZZ/CashCalculator/releases/tag/v0.2.1.2-beta.5)
 
 ## 🔥 Features
 
@@ -17,8 +17,8 @@ A lightweight WPF application to quickly tally cash denominations, compare again
 
 ## 🚀 Installation
 
-1. Download the [v0.2.1.1 release](https://github.com/PrIIIcKoLyAZZZ/CashCalculator/releases/tag/v0.2.1.1-beta.4).
-3. Run `CashCalculator.exe`.
+1. Download the [v0.2.1.2 release](https://github.com/PrIIIcKoLyAZZZ/CashCalculator/releases/tag/v0.2.1.2-beta.4).
+2. Run `CashCalculator.exe`.
 
 ## 📝 Usage
 
